@@ -33,6 +33,65 @@ def readImageData(rootpath):
     gtFile.close()
     return images, output_1, output_2, output_3, output_4
 
+import numpy as np
+import torch
+from torchvision import transforms
+from PIL import Image
+
+def preprocess_images(images):
+    """
+    Preprocess a list of images for VGG.
+    Args:
+        images: List of images (NumPy arrays)
+    Returns:
+        torch.Tensor: Preprocessed images as a 4D tensor
+    """
+    # Define ImageNet normalization
+    transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize((224, 224)),  # Resize to 224x224
+        transforms.RandomHorizontalFlip(),  # 随机水平翻转
+        transforms.RandomCrop(224, padding=4),  # 随机裁剪并填充
+        transforms.ToTensor(),  # Convert to Tensor
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize
+    ])
+    
+    # Apply transformation to each image
+    processed_images = [transform(img) for img in images]
+    
+    # Stack images into a single tensor (batch)
+    return torch.stack(processed_images)
+
+def visualize_images(images, labels=None, num_images=5):
+    """
+    Visualize a few images with optional labels.
+    
+    Args:
+        images (torch.Tensor): A batch of images with shape (N, C, H, W).
+        labels (torch.Tensor or list, optional): Labels corresponding to the images. Defaults to None.
+        num_images (int): Number of images to visualize. Defaults to 5.
+    """
+    # Ensure images are on the CPU and converted to NumPy
+    images = images.cpu().numpy()
+    
+    # Normalize and reshape images for display
+    images = np.transpose(images, (0, 2, 3, 1))  # Convert from (N, C, H, W) to (N, H, W, C)
+    
+    # Clip values to valid range [0, 1] if needed
+    if images.max() > 1.0:
+        images = images / 255.0
+    
+    # Display a few images
+    plt.figure(figsize=(15, 5))
+    for i in range(min(num_images, len(images))):
+        plt.subplot(1, num_images, i + 1)
+        plt.imshow(images[i])
+        if labels is not None:
+            plt.title(f"Label: {labels[i]}")
+        plt.axis('off')
+    plt.tight_layout()
+    plt.show()
+
 def display_images(images, rows, cols, titles=None):
     """
     Display a group of images in a grid.
